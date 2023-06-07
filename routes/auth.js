@@ -2,28 +2,33 @@ const express = require("express");
 const jwt = require("jsonwebtoken");
 let router = express.Router();
 
-router.get("/city", async function (req, res, next) {
-  try {
-    let row = req.db.from("City").select("name", "district");
-    res.json({ Error: false, Message: "Success", City: await row });
-  } catch (err) {
-    console.log(err);
-    res.json({ Error: true, Message: "Error in MySQL query" });
-  }
-});
-
-router.get("/city/:c", async function (req, res, next) {
-  try {
-    let row = req.db.from("City").select("name", "district");
-    row = row.where("CountryCode", "=", req.params.c);
-    res.json({ Error: false, Message: "Success", City: await row });
-  } catch (err) {
-    console.log(err);
-    res.json({ Error: true, Message: "Error in MySQL query" });
-  }
-});
-
-
+/**
+ * @swagger
+ * /register:
+ *   post:
+ *     summary: Register a new user.
+ *     description: Use this endpoint to register a new user.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 description: The user's username.
+ *               password:
+ *                 type: string
+ *                 description: The user's password.
+ *     responses:
+ *       200:
+ *         description: The registered user.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ */
 router.post("/register", function(req, res, next) {
   // 1. Retrieve email and password from req.body
   const { email, password } = req.body;
@@ -59,7 +64,33 @@ router.post("/register", function(req, res, next) {
     res.status(201).json({ success: true, message: "User created" })
   });
 })
-
+/**
+ * @swagger
+ * /login:
+ *   post:
+ *     summary: Log in an existing user.
+ *     description: Use this endpoint to log in an existing user.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 description: The user's username.
+ *               password:
+ *                 type: string
+ *                 description: The user's password.
+ *     responses:
+ *       200:
+ *         description: The logged-in user.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ */
 router.post("/login", function(req, res, next) {
   // 1. Retrieve email and password from req. body
   const {email, password} = req.body;
@@ -106,6 +137,40 @@ router.post("/login", function(req, res, next) {
   }
 })
 
+/**
+ * @swagger
+ * /users/{id}/password:
+ *   put:
+ *     summary: Update a user's password.
+ *     description: Use this endpoint to update a user's password.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: The ID of the user to update.
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               oldPassword:
+ *                 type: string
+ *                 description: The user's current password.
+ *               newPassword:
+ *                 type: string
+ *                 description: The user's new password.
+ *     responses:
+ *       200:
+ *         description: The updated user.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ */
 router.put("/:id/update", function(req, res, next) {
   const { id } = req.params;
   const { oldPassword, newPassword } = req.body;
