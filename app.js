@@ -1,5 +1,6 @@
 var createError = require("http-errors");
 var express = require("express");
+var morgan = require('morgan');
 var path = require("path");
 var cookieParser = require("cookie-parser");
 var logger = require("morgan");
@@ -7,9 +8,10 @@ var logger = require("morgan");
 const options = require("./knexfile");
 const knex = require("knex")(options);
 
-var indexRouter = require("./routes/index");
-var usersRouter = require("./routes/users");
-const apiRouter = require("./routes/api");
+const indexRouter = require("./routes/index");
+const usersRouter = require("./routes/users");
+const authRouter = require("./routes/auth");
+const stockRouter = require("./routes/stock");
 
 var app = express();
 
@@ -22,6 +24,13 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
+// Use morgan middleware to log HTTP requests in the "combined" format
+app.use(morgan('combined'));
+
+// Use a custom logging function to log messages in a specific fomrat
+app.use(morgan((tokens, req, res) => {
+  return `${req.method} ${req.url} ${res.statusCode} ${tokens['response-time'](req, res)} ms`;
+}));
 
 app.use((req, res, next) => {
   req.db = knex;
@@ -30,7 +39,10 @@ app.use((req, res, next) => {
 
 app.use("/", indexRouter);
 app.use("/users", usersRouter);
-app.use("/api", apiRouter);
+app.use("/api/v1/auth", authRouter);
+app.use("/api/v1/users", usersRouter);
+app.use("/api/v1/stock", stockRouter);
+
 app.get("/knex", function (req, res, next) {
   req.db
     .raw("SELECT VERSION()")
