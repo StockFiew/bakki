@@ -13,7 +13,6 @@ const knex = require("knex")(options);
 const indexRouter = require("./routes/index");
 const usersRouter = require("./routes/users");
 const authRouter = require("./routes/auth");
-const stockRouter = require("./routes/stock");
 
 var app = express();
 
@@ -46,7 +45,6 @@ app.use((req, res, next) => {
 app.use("/", indexRouter);
 app.use("/auth", authRouter);
 app.use("/users", usersRouter);
-app.use("/stock", stockRouter);
 
 app.get("/knex", function (req, res, next) {
   req.db

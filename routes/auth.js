@@ -1,5 +1,6 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
+const {generateSalt} = require("../utils");
 let router = express.Router();
 
 /**
@@ -52,6 +53,7 @@ router.post("/register", function(req, res, next) {
     // 2.1. If user does not exist, insert into table
     const bcrypt = require('bcrypt');
     const saltRounds = 10;
+    generateSalt()
     const salt = bcrypt.genSaltSync(saltRounds);
     const hash = bcrypt.hashSync(password, salt)
     try {
@@ -137,82 +139,6 @@ router.post("/login", function(req, res, next) {
   }
 })
 
-/**
- * @swagger
- * /users/{id}/password:
- *   put:
- *     summary: Update a user's password.
- *     description: Use this endpoint to update a user's password.
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         description: The ID of the user to update.
- *         schema:
- *           type: integer
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               oldPassword:
- *                 type: string
- *                 description: The user's current password.
- *               newPassword:
- *                 type: string
- *                 description: The user's new password.
- *     responses:
- *       200:
- *         description: The updated user.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/User'
- */
-router.put("/:id/update", function(req, res, next) {
-  const { id } = req.params;
-  const { oldPassword, newPassword } = req.body;
-  if (!oldPassword || !newPassword) {
-    res.status(400).json({
-      error: true,
-      message: "Request body incomplete - oldPassword and newPassword needed"
-    })
-    return
-  }
-
-  try {
-    const queryUsers = req.db.from("users").select("*").where("id", "=", id)
-    queryUsers
-        .then((users) => {
-          if (users.length === 0) {
-            console.log("Users does not exist")
-            res.status(401).json({ message: "User does not exist" });
-          }
-          const user = users[0];
-          const bcrypt = require('bcrypt');
-          const hashedPassword = bcrypt.hashSync(oldPassword, user.salt);
-          return bcrypt.compare(hashedPassword, user.password)
-        }).then((match) => {
-      if (!match) {
-        console.log("Passwords do not match");
-        res.status(401).json({ message: "Invalid password" });
-      }
-      const bcrypt = require('bcrypt');
-      const saltRounds = 10;
-      const salt = bcrypt.genSaltSync(saltRounds);
-      const hash = bcrypt.hashSync(newPassword, salt)
-      return req.db.from("users").where("id", "=", id).update({hash, salt})
-    }).then(() => {
-      res.status(201).json({ success: true, message: "Password updated" })
-    });
-
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ message: err.message });
-  }
-})
 
 
 module.exports = router;
