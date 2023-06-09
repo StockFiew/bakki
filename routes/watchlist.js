@@ -50,6 +50,7 @@ router.delete('/delete', authenticateUser, async(req, res) => {
 
 router.post('/add', authenticateUser, async(req, res) => {
   const { symbol } = req.body
+  if (!symbol) return req.status(400).json({Error: true, Message: 'Symbol is empty'});
   try {
     const user = req.user;
     req.db.transaction(async (trx) => {
