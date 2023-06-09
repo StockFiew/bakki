@@ -139,6 +139,19 @@ router.post("/login", function(req, res, next) {
   }
 })
 
+router.get('/fmp_token', (req, res) => {
+  req.db.from('configs').select('value').where('key', 'FMP_TOKEN').first()
+    .then(config => {
+      if (!config) {
+        throw new Error('Config key not found!');
+      }
+      res.json({ token: config.value });
+    })
+    .catch(err => {
+      console.error(err);
+      res.status(500).json({ error: 'Internal server error' });
+    });
+});
 
 
 module.exports = router;
