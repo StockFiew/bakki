@@ -1,4 +1,3 @@
-const { hashPassword, generateSalt} = require('../utils');
 const { authenticateUser } = require('../middleware');
 const express = require('express');
 const router = express.Router();
@@ -6,11 +5,11 @@ const router = express.Router();
 router.get('/', authenticateUser, async(req, res) => {
   try {
     const user = req.user;
-    req.db.from("watchlist").select("symbol").where('userId', '=', user.id)
+    req.db.from("watchlist").select("symbol").where('uid', '=', user.id)
       .then(rows => {
         res.json({Error: false, Message: "Success", watchlist: rows})
       })
-      .catch(err => {
+      .catch(() => {
         throw Error("Internal Server Error");
       });
   } catch(err) {
@@ -20,15 +19,14 @@ router.get('/', authenticateUser, async(req, res) => {
 })
 
 router.post('/remove', authenticateUser, async(req, res) => {
-  const user = req.user;
   const { symbol } = req.body
   try {
     const user = req.user;
-    req.db.from("watchlist").select("symbol").where('userId', '=', user.id)
+    req.db.from("watchlist").select("symbol").where('uid', '=', user.id)
       .then(rows => {
-        if (rows.symbol == symbol) {
+        if (rows.symbol === symbol) {
           req.db.from("watchlist").delete({
-            userId: user.id,
+            uid: user.id,
             symbol: symbol
           });
           return res.status(200).json({Error: false, Message: "Success", watchlist: rows})
@@ -44,19 +42,18 @@ router.post('/remove', authenticateUser, async(req, res) => {
 })
 
 router.post('/add', authenticateUser, async(req, res) => {
-  const user = req.user;
   const { symbol } = req.body
   try {
     const user = req.user;
-    req.db.from("watchlist").select("symbol").where('userId', '=', user.id)
+    req.db.from("watchlist").select("symbol").where('uid', '=', user.id)
       .then(rows => {
         if (rows.symbol === symbol) {
-            return res.sendStatus(204);
+          return res.sendStatus(204);
         }
       })
-      .then(item => {
+      .then((rows) => {
         req.db.from("watchlist").insert({
-          userId: user.id,
+          uid: user.id,
           symbol: symbol
         })
         res.status(200).json({Error: false, Message: "Success", watchlist: rows})

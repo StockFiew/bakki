@@ -33,12 +33,12 @@ router.get('/', function(req, res, next) {
 router.get("/:id", async function (req, res, next) {
   try {
     req.db.from("users").select("*").where("id", "=", req.params.id)
-        .then(row => {
-          res.json({Error: False, Message: "Success", Users: row})
-        })
-        .catch(err => {
+      .then(row => {
+        res.json({Error: 'False', Message: "Success", Users: row})
+      })
+      .catch(() => {
         throw Error("Internal Server Error")
-    });
+      });
   } catch (err) {
     console.log(err);
     res.json({ Error: true, Message: "Error in MySQL query" });
@@ -55,23 +55,6 @@ router.get('/me', authenticateUser, async (req, res) => {
     res.status(500).json({ Error: 'True', Message: 'Internal server error' });
   }
 });
-
-router.get('/watchlist', authenticateUser, async(req, res) => {
-  try {
-    const user = req.user;
-    req.db.from("watchlist").select("symbol").where('userId', '=', user.id)
-        .then(rows => {
-          res.json({Error: false, Message: "Success", watchlist: rows})
-        })
-        .catch(err => {
-          throw Error("Internal Server Error");
-        });
-  } catch(err) {
-    console.error(err);
-    res.status(500).json({error: 'True', Message: err.message})
-  }
-})
-
 
 // Route handler for updating a user's email and password
 router.put('/update', authenticateUser, async (req, res) => {

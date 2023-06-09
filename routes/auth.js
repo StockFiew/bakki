@@ -109,30 +109,30 @@ router.post("/login", function(req, res, next) {
     // 2. Determine if user already exists in table
     const queryUsers = req.db.from("users").select("*").where("email", "=", email)
     queryUsers
-        .then((users) => {
-          // 2.2 If user does not exist, return error response
-          if (users.length === 0) {
-            console.log("Users does not exist");
-            res.status(401).json({ message: "Invalid email or password" });
-          }
-          const user = users[0];
-          const bcrypt = require('bcrypt');
-          const hashedPassword = bcrypt.hashSync(password, user.salt);
-          return bcrypt.compare(hashedPassword, user.password)
-          // 2.1 If user does exist, verify if passwords match
-        }).then((match) => {
+      .then((users) => {
+        // 2.2 If user does not exist, return error response
+        if (users.length === 0) {
+          console.log("Users does not exist");
+          res.status(401).json({ message: "Invalid email or password" });
+        }
+        const user = users[0];
+        const bcrypt = require('bcrypt');
+        const hashedPassword = bcrypt.hashSync(password, user.salt);
+        return bcrypt.compare(hashedPassword, user.password)
+        // 2.1 If user does exist, verify if passwords match
+      }).then((match) => {
       // 2.1.1 If passwords match, return JWT token
-      if (!match) {
+        if (!match) {
         // 2.1.2 If passwords do not match, return error response
-        console.log("Passwords do not match");
-        res.status(401).json({ message: "Invalid email or password" });
-      }
-      const secretKey = req.db.from("env".select("*").where("key", "=", "jwtKey"))
-      const expires_in = 60 * 60 * 24 // 1 Day
-      const exp = Date.now() + expires_in * 1000
-      const token = jwt.sign({ email, exp }, secretKey)
-      res.json({token_type: "Bearer", token, expires_in})
-    })
+          console.log("Passwords do not match");
+          res.status(401).json({ message: "Invalid email or password" });
+        }
+        const secretKey = req.db.from("env".select("*").where("key", "=", "jwtKey"))
+        const expires_in = 60 * 60 * 24 // 1 Day
+        const exp = Date.now() + expires_in * 1000
+        const token = jwt.sign({ email, exp }, secretKey)
+        res.json({token_type: "Bearer", token, expires_in})
+      })
   } catch(err) {
     console.error(err);
     return res.status(500).json({ message: err.message });
