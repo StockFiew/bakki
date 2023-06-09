@@ -1,14 +1,34 @@
 const bcrypt = require('bcrypt');
+const jwt = require("jsonwebtoken");
 
-const hashPassword = async (password, salt) => {
-    const hashedPassword = await bcrypt.hash(password, salt);
-    return hashedPassword;
-};
+const generateHash = (password) => {
+  return new Promise((resolve, reject) => {
+    // Generate a salt and hash the password using bcrypt
+    bcrypt.genSalt(10, (err, salt) => {
+      if (err) {
+        reject(err);
+      } else {
+        bcrypt.hash(password, salt, (err, hash) => {
+          if (err) {
+            reject(err);
+          } else {
+            // Resolve the Promise with an object containing the salt and hashed password
+            resolve({ salt, hash });
+          }
+        });
+      }
+    });
+  });};
 
-const generateSalt = async () => {
-    const saltRounds = 10;
-    const salt = await bcrypt.genSalt(saltRounds);
-    return salt;
-};
+const dispatchNewToken = (req, res, payload) => {
+  req.db.from("configs").select("*")
+    .where("name", "=", "jwtKey").first()
+    .then(row => {
+      const expires_in = 60 * 60 * 24 // 1 Day
+      const exp = Date.now() + expires_in * 1000
+      const token = jwt.sign({ ...payload, exp }, row.value)
+      return res.json({token_type: "Bearer", token: `Bearer ${token}`, expires_in})
+    })
+}
 
-module.exports = { hashPassword, generateSalt };
+module.exports = {generateHash, dispatchNewToken};

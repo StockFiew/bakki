@@ -7,12 +7,8 @@ var logger = require("morgan");
 
 // DB
 const options = require("./knexfile");
+const {authenticateUser} = require("./middleware");
 const knex = require("knex")(options);
-
-// Routes
-const indexRouter = require("./routes/index");
-const usersRouter = require("./routes/users");
-const authRouter = require("./routes/auth");
 
 var app = express();
 
@@ -42,9 +38,10 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use("/", indexRouter);
-app.use("/auth", authRouter);
-app.use("/users", usersRouter);
+app.use('/', require('./routes/index'));
+app.use('/auth', require('./routes/auth'));
+app.use('/users', authenticateUser, require('./routes/users'));
+app.use('/watchlist', authenticateUser, require('./routes/watchlist'));
 
 app.get("/knex", function (req, res, next) {
   req.db

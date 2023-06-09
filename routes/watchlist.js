@@ -5,12 +5,12 @@ const router = express.Router();
 router.get('/', authenticateUser, async(req, res) => {
   try {
     const user = req.user;
-    req.db.from("watchlist").select("symbol").where('uid', '=', user.id)
+    req.db.from("watchlists").select("symbol").where('uid', '=', user.id)
       .then(rows => {
         res.json({Error: false, Message: "Success", watchlist: rows})
       })
-      .catch(() => {
-        throw Error("Internal Server Error");
+      .catch((err) => {
+        throw Error(`Internal Server Error: ${err}`);
       });
   } catch(err) {
     console.error(err);
@@ -18,19 +18,26 @@ router.get('/', authenticateUser, async(req, res) => {
   }
 })
 
-router.post('/remove', authenticateUser, async(req, res) => {
+router.delete('/delete', authenticateUser, async(req, res) => {
   const { symbol } = req.body
   try {
     const user = req.user;
-    req.db.from("watchlist").select("symbol").where('uid', '=', user.id)
-      .then(rows => {
-        if (rows.symbol === symbol) {
-          req.db.from("watchlist").delete({
-            uid: user.id,
-            symbol: symbol
-          });
-          return res.status(200).json({Error: false, Message: "Success", watchlist: rows})
+    req.db.transaction(async (trx) => {
+      const watchlist = await trx.from("watchlists").select("*").where('uid', '=', user.id);
+      const symbolExists = watchlist.some(row => row.symbol === symbol);
+      if (!symbolExists) {
+        return { watchlist };
+      }
+      await trx.from("watchlists").where({uid: user.id, symbol: symbol}).del();
+      const updatedWatchlist = await trx.from("watchlists").select("*").where('uid', '=', user.id);
+      return { watchlist: updatedWatchlist, deletedSymbol: symbol };
+    })
+      .then(result => {
+        const { watchlist, deletedSymbol } = result;
+        if (!deletedSymbol) {
+          return res.status(200).json({Error: false, Message: "Item doest not exist", WatchList: watchlist});
         }
+        return res.status(200).json({Error: false, Message: "Success", WatchList: watchlist});
       })
       .catch(err => {
         throw Error(err);
@@ -45,18 +52,25 @@ router.post('/add', authenticateUser, async(req, res) => {
   const { symbol } = req.body
   try {
     const user = req.user;
-    req.db.from("watchlist").select("symbol").where('uid', '=', user.id)
-      .then(rows => {
-        if (rows.symbol === symbol) {
-          return res.sendStatus(204);
+    req.db.transaction(async (trx) => {
+      const watchlist = await trx.from("watchlists").select("*").where('uid', '=', user.id);
+      const symbolExists = watchlist.some(row => row.symbol === symbol);
+      if (symbolExists) {
+        return { watchlist };
+      }
+      await trx.from("watchlists").insert({
+        uid: user.id,
+        symbol: symbol
+      });
+      const updatedWatchlist = await trx.from("watchlists").select("*").where('uid', '=', user.id);
+      return { watchlist: updatedWatchlist, addedSymbol: symbol };
+    })
+      .then(result => {
+        const { watchlist, addedSymbol } = result;
+        if (!addedSymbol) {
+          return res.status(200).json({Error: false, Message: "Item already exists", WatchList: watchlist});
         }
-      })
-      .then((rows) => {
-        req.db.from("watchlist").insert({
-          uid: user.id,
-          symbol: symbol
-        })
-        res.status(200).json({Error: false, Message: "Success", watchlist: rows})
+        return res.status(200).json({Error: false, Message: "Success", WatchList: watchlist});
       })
       .catch(err => {
         throw Error(err);
