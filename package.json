@@ -21,6 +21,7 @@
     "mysql2": "^2.3.3",
     "nodemon": "^2.0.16",
     "pm2": "^5.3.0",
+    "stocks.js": "^0.0.19",
     "swagger-autogen": "^2.23.1",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^4.6.3"

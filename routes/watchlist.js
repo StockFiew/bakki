@@ -14,7 +14,7 @@ router.get('/', authenticateUser, async(req, res) => {
       });
   } catch(err) {
     console.error(err);
-    res.status(500).json({error: 'True', Message: err.message})
+    res.status(500).json({Error: true, Message: err.message})
   }
 })
 
@@ -44,7 +44,7 @@ router.delete('/delete', authenticateUser, async(req, res) => {
       });
   } catch(err) {
     console.error(err);
-    res.status(500).json({error: 'True', Message: err.message})
+    res.status(500).json({Error: 'True', Message: err.message})
   }
 })
 
@@ -78,7 +78,7 @@ router.post('/add', authenticateUser, async(req, res) => {
       });
   } catch(err) {
     console.error(err);
-    res.status(500).json({error: 'True', Message: err.message})
+    res.status(500).json({Error: true, Message: err.message})
   }
 })
 

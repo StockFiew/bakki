@@ -35,8 +35,8 @@ router.post("/register", function(req, res, next) {
 
   if (!email || !password) {
     res.status(400).json({
-      error: true,
-      message: "Request body incomplete - email and password needed"
+      Error: true,
+      Message: "Request body incomplete - email and password needed"
     })
     return
   }
@@ -45,8 +45,7 @@ router.post("/register", function(req, res, next) {
   const queryUsers = req.db.from("users").select("*").where("email", "=", email)
   queryUsers.then((users) => {
     if (users.length > 0) {
-      console.log("User already exists");
-      return;
+      return res.status(200).json({ Error: false, Message: "Email already exists" })
     }
 
     // 2.1. If user does not exist, insert into table
@@ -55,7 +54,7 @@ router.post("/register", function(req, res, next) {
         return req.db.from("users").insert({email, hash, salt})
       } catch(err) {
         console.error(err);
-        return res.status(500).json({ message: "Internal server error" });
+        return res.status(500).json({ Error: true, Message: "Internal server error" });
       }
     }).then(() => {
       dispatchNewToken(req, res, { email });
@@ -95,8 +94,8 @@ router.post("/login", function(req, res, next) {
   // Verify body
   if (!email || !password) {
     res.status(400).json({
-      error: true,
-      message: "Request body incomplete - email and password needed"
+      Error: true,
+      Message: "Request body incomplete - email and password needed"
     })
     return
   }
@@ -109,18 +108,18 @@ router.post("/login", function(req, res, next) {
         // 2.2 If user does not exist, return error response
         if (users.length === 0) {
           console.log("Users does not exist");
-          res.status(401).json({ message: "Invalid email or password" });
+          res.status(401).json({ Error: true, Message: "Invalid email or password" });
         }
         const user = users[0];
         const bcrypt = require('bcrypt');
         bcrypt.compare(password, user.hash, (err, result) => {
           // 2.1 If user does exist, verify if passwords match
           if(err) {
-            return res.status(500).json({ message: err.message });
+            return res.status(500).json({ Error: true, Message: err.message });
           } else if (result) {
             return dispatchNewToken(req, res, { email });
           } else {
-            return res.status(401).json({ message: "Invalid email or password" });
+            return res.status(401).json({ Error: true, Message: "Invalid email or password" });
           }
         })
       })
@@ -140,7 +139,7 @@ router.get('/fmp_token', (req, res) => {
     })
     .catch(err => {
       console.error(err);
-      res.status(500).json({ error: 'Internal server error' });
+      res.status(500).json({ Error: true, Message: 'Internal server error' });
     });
 });
 
