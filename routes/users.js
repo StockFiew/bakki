@@ -49,15 +49,14 @@ router.get('/me', async function (req, res, next) {
 
 // Route handler for updating a user's email and password
 router.put('/update', authenticateUser, async (req, res, next) => {
-  const renewToken = require('../utils').dispatchNewToken;
   try {
     const user = req.user;
     const {oldPassword, newPassword, name, email} = req.body;
 
     if (!oldPassword) {
       res.status(400).json({
-        error: true,
-        message: "Request body incomplete - oldPassword is needed "
+        Error: true,
+        Message: "Request body incomplete - oldPassword is needed "
       })
       return
     }
@@ -68,8 +67,7 @@ router.put('/update', authenticateUser, async (req, res, next) => {
     if (!newPassword) {
       const hashedPassword = bcrypt.hashSync(oldPassword, user.salt);
       if (!bcrypt.compare(hashedPassword, user.hash)) {
-        console.log("Passwords do not match");
-        return res.status(401).json({message: "Invalid password"});
+        return res.status(401).json({Error: true, Message : "Invalid password"});
       }
     } else if (newPassword) {
       generateHash(newPassword)
