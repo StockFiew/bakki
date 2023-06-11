@@ -35,58 +35,57 @@ router.get('/me', async function (req, res, next) {
   console.log(`testing, ${req.user}`)
   try {
     const user = req.user;
-    res.status(200).json({ Error: 'False', User: {
+    res.status(200).json({ Error: false, User: {
       id: user.id,
       email: user.email,
       name: user.name,
     }});
   } catch (error) {
     console.error(error);
-    res.status(500).json({ Error: 'True', Message: 'Internal server error' });
+    res.status(500).json({ Error: true, Message: 'Internal server error' });
   }
 });
 
 
 // Route handler for updating a user's email and password
-router.put('/update', authenticateUser, async (req, res, next) => {
-  try {
-    const user = req.user;
-    const { oldPassword, newPassword, name, email } = req.body;
+router.put('/update', authenticateUser, (req, res, next) => {
+  const user = req.user;
+  const { oldPassword, newPassword, name, email } = req.body;
 
-    if (!oldPassword) {
-      return res.status(400).json({
-        Error: true,
-        Message: "Request body incomplete - oldPassword is needed "
-      });
-    }
+  if (!oldPassword) {
+    return res.status(400).json({
+      Error: true,
+      Message: "Request body incomplete - oldPassword is needed "
+    });
+  }
 
-    if (newPassword) {
-      const { salt, hash } = await generateHash(newPassword);
+  if (newPassword) {
+    generateHash(newPassword).then(({ salt, hash }) => {
       user.hash = hash;
       user.salt = salt;
-    }
+    });
+  }
 
-    if (name) {
-      user.name = name;
-    }
+  if (name) {
+    user.name = name;
+  }
 
-    if (email) {
-      user.email = email;
-    }
+  if (email) {
+    user.email = email;
+  }
 
-    const updatedUser = await req.db.from('users').where({ id: user.id }).update(user).returning('*');
-
+  req.db.from('users').where({ id: user.id }).update(user).then(updatedUser => {
     if (!updatedUser) {
       return res.status(404).json({ Error: true, Message: 'User not found' });
     }
 
-    //return res.status(200).json({ Error: false, Message: 'Success', User: updatedUser });
-    return dispatchNewToken(res, req, updatedUser);
+    const { id, name: updatedName } = updatedUser;
 
-  } catch (err) {
+    return res.status(200).json({ Error: false, Message: 'Success', User: { id, name: updatedName } });
+  }).catch(err => {
     console.error(err);
     res.status(500).json({ Error: true, Message: 'Internal Server Error' });
-  }
+  });
 });
 
 
