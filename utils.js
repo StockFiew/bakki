@@ -28,7 +28,8 @@ const dispatchNewToken = (req, res, payload) => {
       const exp = Date.now() + expires_in * 1000
       const token = jwt.sign({ ...payload, exp }, row.value)
       return res.json({error: false, message: "Success", token_type: "Bearer",
-        token: `Bearer ${token}`, expires_in})
+        token: `Bearer ${token}`, expires_in,
+        payload: payload})
     })
 }
 

@@ -49,17 +49,20 @@ router.post("/register", function(req, res, next) {
     }
 
     // 2.1. If user does not exist, insert into table
-    generateHash(password).then(({salt, hash}) => {
-      try {
-        return req.db.from("users").insert({email, hash, salt})
-      } catch(err) {
+    generateHash(password)
+      .then(({ salt, hash }) => {
+        return req.db.from("users")
+          .insert({ email, hash, salt })
+          .returning(["id", "name", "email"]);
+      })
+      .then((users) => {
+        const user = users[0];
+        dispatchNewToken(req, res, { id: user.id, name: user.name, email: user.email });
+      })
+      .catch((err) => {
         console.error(err);
         return res.status(500).json({ Error: true, Message: "Internal server error" });
-      }
-    }).then(() => {
-      dispatchNewToken(req, res, { email });
-    });
-  });
+      });  });
 })
 /**
  * @swagger
@@ -101,23 +104,25 @@ router.post("/login", function(req, res, next) {
   }
   try {
     // 2. Determine if user already exists in table
-    const queryUsers = req.db.from("users").select("*")
-      .where("email", "=", email);
+    const queryUsers = req.db.from("users")
+      .where("email", "=", email)
+      .select("id", "name", "email", "hash")
+      .first();
+        
     queryUsers
-      .then((users) => {
+      .then((user) => {
         // 2.2 If user does not exist, return error response
-        if (users.length === 0) {
-          console.log("Users does not exist");
+        if (!user) {
+          console.log("User does not exist");
           res.status(401).json({ Error: true, Message: "Invalid email or password" });
         }
-        const user = users[0];
         const bcrypt = require('bcrypt');
         bcrypt.compare(password, user.hash, (err, result) => {
           // 2.1 If user does exist, verify if passwords match
           if(err) {
             return res.status(500).json({ Error: true, Message: err.message });
           } else if (result) {
-            return dispatchNewToken(req, res, { email });
+            return dispatchNewToken(req, res, { id: user.id, name: user.name, email: user.email });
           } else {
             return res.status(401).json({ Error: true, Message: "Invalid email or password" });
           }
