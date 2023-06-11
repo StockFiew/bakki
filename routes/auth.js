@@ -45,7 +45,7 @@ router.post("/register", function(req, res, next) {
   const queryUsers = req.db.from("users").select("*").where("email", "=", email)
   queryUsers.then((users) => {
     if (users.length > 0) {
-      return res.status(200).json({ Error: false, Message: "Email already exists" })
+      return res.status(200).json({ Error: true, Message: "Email already exists" })
     }
 
     // 2.1. If user does not exist, insert into table
@@ -114,7 +114,7 @@ router.post("/login", function(req, res, next) {
         // 2.2 If user does not exist, return error response
         if (!user) {
           console.log("User does not exist");
-          res.status(401).json({ Error: true, Message: "Invalid email or password" });
+          return res.status(401).json({ Error: true, Message: "Invalid email or password" });
         }
         const bcrypt = require('bcrypt');
         bcrypt.compare(password, user.hash, (err, result) => {

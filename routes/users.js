@@ -51,68 +51,41 @@ router.get('/me', async function (req, res, next) {
 router.put('/update', authenticateUser, async (req, res, next) => {
   try {
     const user = req.user;
-    const {oldPassword, newPassword, name, email} = req.body;
+    const { oldPassword, newPassword, name, email } = req.body;
 
     if (!oldPassword) {
-      res.status(400).json({
+      return res.status(400).json({
         Error: true,
         Message: "Request body incomplete - oldPassword is needed "
-      })
-      return
+      });
     }
-    const bcrypt = require('bcrypt');
-    
-    if (name) user.name = name;
 
-    if (!newPassword) {
-      const hashedPassword = bcrypt.hashSync(oldPassword, user.salt);
-      if (!bcrypt.compare(hashedPassword, user.hash)) {
-        return res.status(401).json({Error: true, Message : "Invalid password"});
-      }
-    } else if (newPassword) {
-      generateHash(newPassword)
-        .then(({salt, hash}) => {
-          user.hash = hash;
-          user.salt = salt;
-          req.db.from('users').where({id: user.id}).update(user)
-            .then(count => {
-              if (!count) return res.status(404).json({Error: 'True', Message: 'User not found'});
-            });
-          return dispatchNewToken(req, res, user.email);
-        });
-    } else {
-      req.db.from('users').where({id: user.id}).update(user)
-        .then(count => {
-          if (!count) return res.status(404).json({Error: 'True', Message: 'User not found'});
-        });
-      return res.status(200).json({Error: 'False', Message: 'Success', User: user});
+    if (newPassword) {
+      const { salt, hash } = await generateHash(newPassword);
+      user.hash = hash;
+      user.salt = salt;
     }
+
+    if (name) {
+      user.name = name;
+    }
+
+    if (email) {
+      user.email = email;
+    }
+
+    const updatedUser = await req.db.from('users').where({ id: user.id }).update(user).returning('*');
+
+    if (!updatedUser) {
+      return res.status(404).json({ Error: true, Message: 'User not found' });
+    }
+
+    //return res.status(200).json({ Error: false, Message: 'Success', User: updatedUser });
+    return dispatchNewToken(res, req, updatedUser);
 
   } catch (err) {
     console.error(err);
-    res.status(500).json({Error: 'True', Message: 'Internal Server Error'});
-  }
-});
-
-router.get("/:id", async function (req, res, next) {
-  try {
-    req.db.from("users").select("*").where("id", "=", req.params.id).first()
-      .then(row => {
-        res.status(200).json({Error: 'False', Message: "Success", Users:
-            {
-              id: row.id,
-              name: row.name,
-              email: row.email,
-              created_at: row.created_at,
-              updated_at: row.updated_at
-            }
-        })
-      }).catch(() => {
-        throw Error("Internal Server Error")
-      });
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({ Error: true, Message: "Error in MySQL query" });
+    res.status(500).json({ Error: true, Message: 'Internal Server Error' });
   }
 });
 
