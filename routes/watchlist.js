@@ -5,7 +5,7 @@ const router = express.Router();
 router.get('/', authenticateUser, async(req, res) => {
   try {
     const user = req.user;
-    req.db.from("watchlists").select("symbol").where('uid', '=', user.id)
+    req.db.from("watchlists").select("*").where('uid', '=', user.id)
       .then(rows => {
         res.json({Error: false, Message: "Success", watchlist: rows})
       })
@@ -19,6 +19,7 @@ router.get('/', authenticateUser, async(req, res) => {
 })
 
 router.delete('/delete', authenticateUser, async(req, res) => {
+  console.log(symbol)
   const { symbol } = req.body
   try {
     const user = req.user;
@@ -49,8 +50,8 @@ router.delete('/delete', authenticateUser, async(req, res) => {
 })
 
 router.post('/add', authenticateUser, async(req, res) => {
-  const { symbol } = req.body
-  if (!symbol) return req.status(400).json({Error: true, Message: 'Symbol is empty'});
+  const { symbol, name, stockExchange } = req.body
+  if (!symbol || !name || !stockExchange) return res.status(400).json({Error: true, Message: 'Symbol, Name and StockExchange is required.'});
   try {
     const user = req.user;
     req.db.transaction(async (trx) => {
@@ -61,18 +62,19 @@ router.post('/add', authenticateUser, async(req, res) => {
       }
       await trx.from("watchlists").insert({
         uid: user.id,
-        symbol: symbol
+        symbol: symbol,
+        name: name,
+        stockExchange: stockExchange
       });
       const updatedWatchlist = await trx.from("watchlists").select("*").where('uid', '=', user.id);
       return { watchlist: updatedWatchlist, addedSymbol: symbol };
+    }).then(result => {
+      const { watchlist, addedSymbol } = result;
+      if (!addedSymbol) {
+        return res.status(200).json({Error: false, Message: "Item already exists", WatchList: watchlist});
+      }
+      return res.status(200).json({Error: false, Message: "Success", WatchList: watchlist});
     })
-      .then(result => {
-        const { watchlist, addedSymbol } = result;
-        if (!addedSymbol) {
-          return res.status(200).json({Error: false, Message: "Item already exists", WatchList: watchlist});
-        }
-        return res.status(200).json({Error: false, Message: "Success", WatchList: watchlist});
-      })
       .catch(err => {
         throw Error(err);
       });
