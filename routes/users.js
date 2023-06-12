@@ -53,25 +53,66 @@ router.get('/me', async function (req, res, next) {
 });
 
 // Upload profile picture
+const express = require('express');
+const multer = require('multer');
+const knex = require('knex');
+
+const router = express.Router();
+
+// configure multer to save files to memory
+const upload = multer();
+
+// create a Knex instance
+const db = knex({
+  client: 'mysql',
+  connection: {
+    host: 'localhost',
+    user: 'root',
+    password: 'password',
+    database: 'mydatabase',
+  },
+});
+
 router.post('/profile/picture', upload.single('picture'), (req, res) => {
   const user = req.user;
-  const { buffer } = req.file;
-  req.db.from('profile_pic').where({ uid: user.id }).select()
-    .then(rows => {
+  const { file } = req.file;
+  const fileData = file.buffer.toString('base64');
+
+  // convert the buffer to a base64-encoded string
+  const pic = buffer.toString('base64');
+
+  // check if the user already has a profile picture
+  req.db.from('profile_pic')
+    .where({ uid: user.id })
+    .select()
+    .then((rows) => {
       if (rows.length === 0) {
-        return req.db.from('profile_pic').insert({ uid: user.id, pic: buffer });
+        // insert a new profile picture for the user
+        return db('profile_pic').insert({ uid: user.id, type: file.originalname, name: file.mimetype, data: fileData });
       } else {
-        return req.db.from('profile_pic').where({ uid: user.id }).update({ pic: buffer });
+        // update the existing profile picture for the user
+        return db('profile_pic').where({ uid: user.id })
+          .update({ type: file.originalname, name: file.mimetype, data: fileData });
       }
     })
     .then(() => {
-      res.status(200).json({ Error: false, Message: "Profile picture updated successfully", Picture: buffer});
+      res.status(200).json({
+        Error: false,
+        Message: 'Profile picture updated successfully',
+        Picture: {
+          name: file.originalname,
+          type: file.mimetype,
+          data: fileData,
+        },
+      });
     })
-    .catch(error => {
+    .catch((error) => {
       console.error(error);
       res.status(500).json({ Error: true, Message: 'Internal server error' });
     });
 });
+
+module.exports = router;
 
 // Route handler for updating a user's email and password
 router.put('/update', authenticateUser, (req, res, next) => {
