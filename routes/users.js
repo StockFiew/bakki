@@ -43,7 +43,7 @@ router.get('/me', async function (req, res, next) {
           id: user.id,
           email: user.email,
           name: user.name,
-          profilePic: row ? row : null
+          profilePic: row ? row.data.toString('base64') : null
         }
       })
     }).catch((err) => {
@@ -54,9 +54,8 @@ router.get('/me', async function (req, res, next) {
 
 
 router.post('/profile/picture', upload.single('picture'), (req, res) => {
-  console.log(req)
   const user = req.user;
-  const { file } = req.file;
+  const file = req.file;
   const fileData = file.buffer.toString('base64');
 
   // check if the user already has a profile picture
