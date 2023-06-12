@@ -54,6 +54,7 @@ router.get('/me', async function (req, res, next) {
 
 
 router.post('/profile/picture', upload.single('picture'), (req, res) => {
+  console.log(req)
   const user = req.user;
   const { file } = req.file;
   const fileData = file.buffer.toString('base64');

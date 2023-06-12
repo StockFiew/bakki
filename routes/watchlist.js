@@ -2,21 +2,19 @@ const { authenticateUser } = require('../middleware');
 const express = require('express');
 const router = express.Router();
 
-router.get('/', authenticateUser, async(req, res) => {
-  try {
-    const user = req.user;
-    req.db.from("watchlists").select("*").where('uid', '=', user.id)
-      .then(rows => {
-        res.json({Error: false, Message: "Success", watchlist: rows})
-      })
-      .catch((err) => {
-        throw Error(`Internal Server Error: ${err}`);
-      });
-  } catch(err) {
-    console.error(err);
-    res.status(500).json({Error: true, Message: err.message})
-  }
-})
+router.get('/', authenticateUser, (req, res) => {
+  const user = req.user;
+  req.db.from("watchlists").select("*").where('uid', '=', user.id)
+    .then((rows) => {
+      const watchlist = rows || [];
+      res.json({Error: false, Message: "Success", watchlist});
+    })
+    .catch((err) => {
+      console.error(err);
+      res.status(500).json({Error: true, Message: err.message});
+    });
+});
+
 
 router.delete('/delete', authenticateUser, async(req, res) => {
   const { symbol } = req.body

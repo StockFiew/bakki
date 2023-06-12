@@ -37,33 +37,43 @@ router.post("/register", function(req, res, next) {
     res.status(400).json({
       Error: true,
       Message: "Request body incomplete - email and password needed"
-    })
-    return
+    });
+    return;
   }
 
-  // 2. Determine if user is already exists in table
-  const queryUsers = req.db.from("users").select("*").where("email", "=", email)
-  queryUsers.then((users) => {
-    if (users.length > 0) {
-      return res.status(200).json({ Error: true, Message: "Email already exists" })
-    }
+  // 2. Determine if user already exists in table
+  req.db.from("users").select("*").where("email", "=", email)
+    .then((users) => {
+      if (users.length > 0) {
+        return res.status(200).json({ Error: true, Message: "Email already exists" });
+      }
 
-    // 2.1. If user does not exist, insert into table
-    generateHash(password)
-      .then(({ salt, hash }) => {
-        return req.db.from("users")
-          .insert({ email, hash, salt })
-          .returning(["id", "name", "email"]);
-      })
-      .then((users) => {
-        const user = users[0];
-        dispatchNewToken(req, res, { id: user.id, name: user.name, email: user.email });
-      })
-      .catch((err) => {
-        console.error(err);
-        return res.status(500).json({ Error: true, Message: "Internal server error" });
-      });  });
-})
+      // 2.1. If user does not exist, insert into table
+      generateHash(password)
+        .then(({ salt, hash }) => {
+          return req.db.from("users")
+            .insert({ email, hash, salt })
+        })
+        .then((res) => {
+          const insertedId = res[0];
+          return req.db.from('users')
+            .select('*')
+            .where('id', insertedId)
+            .first();
+        })
+        .then((user) => {
+          dispatchNewToken(req, res, { id: user.id, name: user.name, email: user.email });
+        })
+        .catch((err)=> {
+          console.error(err);
+          return res.status(500).json({ Error: true, Message: "Internal server error" });
+        });
+    })
+    .catch((err) => {
+      console.error(err);
+      return res.status(500).json({ Error: true, Message: "Internal server error" });
+    });
+});
 /**
  * @swagger
  * /login:
