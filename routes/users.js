@@ -2,6 +2,9 @@ const { authenticateUser } = require('../middleware');
 const express = require('express');
 const { generateHash, dispatchNewToken} = require("../utils");
 const router = express.Router();
+const multer = require('multer');
+const upload = multer();
+router.use(authenticateUser);
 
 // Define your Express routes
 /**
@@ -20,7 +23,7 @@ const router = express.Router();
  *               items:
  *                 $ref: '#/components/schemas/User'
  */
-router.use(authenticateUser);
+
 router.get('/', function(req, res, next) {
   req.db.from("users").select().then(rows => {
     const mappedRows = rows.map(user => ({ id: user.id, name: user.name, email: user.email }))
@@ -32,20 +35,43 @@ router.get('/', function(req, res, next) {
 });
 
 router.get('/me', async function (req, res, next) {
-  console.log(`testing, ${req.user}`)
-  try {
-    const user = req.user;
-    res.status(200).json({ Error: false, User: {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-    }});
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ Error: true, Message: 'Internal server error' });
-  }
+  const user = req.user;
+  return req.db.from('profile_pic').where({ uid: user.id} ).first()
+    .then(row => {
+      return res.status(200).json({ Error: false,
+        User: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          profilePic: row ? row : null
+        }
+      })
+    }).catch((err) => {
+      console.log(err)
+      res.status(500).json({ Error: true, Message: "Internal Server Error"})
+    });
 });
 
+// Upload profile picture
+router.post('/profile/picture', upload.single('picture'), (req, res) => {
+  const user = req.user;
+  const { buffer } = req.file;
+  req.db.from('profile_pic').where({ uid: user.id }).select()
+    .then(rows => {
+      if (rows.length === 0) {
+        return req.db.from('profile_pic').insert({ uid: user.id, pic: buffer });
+      } else {
+        return req.db.from('profile_pic').where({ uid: user.id }).update({ pic: buffer });
+      }
+    })
+    .then(() => {
+      res.status(200).json({ Error: false, Message: "Profile picture updated successfully", Picture: buffer});
+    })
+    .catch(error => {
+      console.error(error);
+      res.status(500).json({ Error: true, Message: 'Internal server error' });
+    });
+});
 
 // Route handler for updating a user's email and password
 router.put('/update', authenticateUser, (req, res, next) => {

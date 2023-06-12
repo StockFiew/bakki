@@ -19,7 +19,6 @@ router.get('/', authenticateUser, async(req, res) => {
 })
 
 router.delete('/delete', authenticateUser, async(req, res) => {
-  console.log(symbol)
   const { symbol } = req.body
   try {
     const user = req.user;
