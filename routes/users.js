@@ -52,34 +52,11 @@ router.get('/me', async function (req, res, next) {
     });
 });
 
-// Upload profile picture
-const express = require('express');
-const multer = require('multer');
-const knex = require('knex');
-
-const router = express.Router();
-
-// configure multer to save files to memory
-const upload = multer();
-
-// create a Knex instance
-const db = knex({
-  client: 'mysql',
-  connection: {
-    host: 'localhost',
-    user: 'root',
-    password: 'password',
-    database: 'mydatabase',
-  },
-});
 
 router.post('/profile/picture', upload.single('picture'), (req, res) => {
   const user = req.user;
   const { file } = req.file;
   const fileData = file.buffer.toString('base64');
-
-  // convert the buffer to a base64-encoded string
-  const pic = buffer.toString('base64');
 
   // check if the user already has a profile picture
   req.db.from('profile_pic')
@@ -88,10 +65,10 @@ router.post('/profile/picture', upload.single('picture'), (req, res) => {
     .then((rows) => {
       if (rows.length === 0) {
         // insert a new profile picture for the user
-        return db('profile_pic').insert({ uid: user.id, type: file.originalname, name: file.mimetype, data: fileData });
+        return req.db.from('profile_pic').insert({ uid: user.id, type: file.originalname, name: file.mimetype, data: fileData });
       } else {
         // update the existing profile picture for the user
-        return db('profile_pic').where({ uid: user.id })
+        return req.db.from('profile_pic').where({ uid: user.id })
           .update({ type: file.originalname, name: file.mimetype, data: fileData });
       }
     })
